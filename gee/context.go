@@ -1,9 +1,10 @@
 package gee
 
 import (
-	"fmt"
-	"net/http"
 	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
 )
 
 type H map[string]interface{}
@@ -21,6 +22,21 @@ type Context struct {
 	// middleware
 	handlers []HandlerFunc
 	index    int
+	// engine
+	engine *Engine
+}
+
+func (c *Context) HTML(code int, name string, data interface{}) {
+	c.SetHeader("Content-Type", "text/html")
+	c.Status(code)
+	if err := c.engine.htmlTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
+		c.Fail(500, err.Error())
+	}
+}
+
+func (c *Context) Fail(i int, s string) {
+	log.Printf("error: %s", s)
+	c.Status(i)
 }
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
@@ -29,7 +45,7 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Req:    req,
 		Path:   req.URL.Path,
 		Method: req.Method,
-		index: -1,	//	-1表示没有执行任何中间件
+		index:  -1, //	-1表示没有执行任何中间件
 	}
 }
 
@@ -85,8 +101,8 @@ func (c *Context) Data(code int, data []byte) {
 	c.Writer.Write(data)
 }
 
-func (c *Context) HTML(code int, html string) {
-	c.SetHeader("Content-Type", "text/html")
-	c.Status(code)
-	c.Writer.Write([]byte(html))
-}
+// func (c *Context) HTML(code int, html string) {
+// 	c.SetHeader("Content-Type", "text/html")
+// 	c.Status(code)
+// 	c.Writer.Write([]byte(html))
+// }
